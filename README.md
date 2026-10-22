@@ -1,66 +1,49 @@
-## Foundry
+# TripFund
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+TripFund собирает токены ERC-20 на поездку. При создании контракта задаются организатор, цель сбора и дедлайн. До дедлайна участники вносят токены. После срока возможен один из двух исходов:
 
-Foundry consists of:
+- Если собрано не меньше цели, организатор один раз вызывает `withdraw()` и получает сумму взносов.
+- Если цель не достигнута, каждый участник вызывает `refund()` и возвращает свой вклад.
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+Контракт находится в `src/TripFund.sol`, тесты в `test/TripFund.t.sol`.
 
-## Documentation
+## Параметры при создании
 
-https://book.getfoundry.sh/
+| Параметр | Значение |
+| --- | --- |
+| `token_` | Адрес токена ERC-20, в котором проходит сбор |
+| `organizer_` | Адрес организатора, которому доступны средства при успешном сборе |
+| `goal_` | Цель сбора в минимальных единицах токена, больше нуля |
+| `deadline_` | Время окончания сбора в секундах Unix; должно быть в будущем |
 
-## Usage
+Адреса токена и организатора не могут быть нулевыми.
 
-### Build
+## Как внести токены
 
-```shell
-$ forge build
+Для взноса контракту TripFund нужно разрешение на списание токенов. Если разрешения ещё нет или его сумма слишком мала, участник отправляет со своего адреса две транзакции в таком порядке:
+
+```text
+1. В токене ERC-20: approve(адрес TripFund, amount)
+2. В TripFund:     contribute(amount)
 ```
 
-### Test
+Если разрешение уже покрывает `amount`, первый шаг можно пропустить. `contribute` переводит токены в контракт и записывает вклад за адресом отправителя. Один адрес может внести токены несколько раз. `amount` указывается в минимальных единицах: для токена с 18 знаками после запятой 10 токенов записываются как `10e18`.
 
-```shell
-$ forge test
+После окончания срока новые взносы не принимаются. Вызвать `withdraw()` может только организатор и только при достижении цели. При недостигнутой цели участник вызывает `refund()` сам; повторный возврат отклоняется.
+
+`totalRaised` хранит общую сумму принятых взносов и после возвратов не уменьшается. Прямой перевод токенов на адрес TripFund без `contribute()` не создаёт вклад: такие токены не учитываются в цели, не попадают в `withdraw()` и не возвращаются через `refund()`.
+
+## Установка и проверка
+
+Нужен установленный Foundry с командой `forge`. Проект проверен с Forge 1.8.6 и компилятором Solidity 0.8.24; в контракте указано `pragma solidity ^0.8.20`. Зависимости: OpenZeppelin Contracts 5.0.2 и forge-std 1.17.0.
+
+```sh
+git clone --recurse-submodules https://github.com/arseniytitarenko/hse-web3-hw2.git
+cd hse-web3-hw2
+forge build
+forge test
 ```
 
-### Format
+Если репозиторий уже склонирован без зависимостей, загрузите их командой `git submodule update --init --recursive`.
 
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+Тесты проверяют взносы, права организатора, достижение цели, границу дедлайна, независимые возвраты, повторные вызовы, события и прямые переводы токенов.
