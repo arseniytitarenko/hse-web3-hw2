@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "scripts": {
+    "validate:upgrade": "openzeppelin-upgrades-core validate out/build-info --contract src/TripFundV2.sol:TripFundV2 --reference src/TripFundV1.sol:TripFundV1 --requireReference"
+  },
+  "devDependencies": {
+    "@openzeppelin/upgrades-core": "1.46.0"
+  }
+}
