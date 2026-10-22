@@ -20,12 +20,7 @@ contract TripFund {
     event Withdrawn(address indexed organizer, uint256 amount);
     event Refunded(address indexed contributor, uint256 contributionAmount);
 
-    constructor(
-        address token_,
-        address organizer_,
-        uint256 goal_,
-        uint256 deadline_
-    ) {
+    constructor(address token_, address organizer_, uint256 goal_, uint256 deadline_) {
         require(token_ != address(0), "Zero token address");
         require(organizer_ != address(0), "Zero organizer address");
         require(goal_ > 0, "Zero goal");
